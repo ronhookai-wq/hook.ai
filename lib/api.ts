@@ -32,8 +32,16 @@ export interface UserData {
   recentImages: any[];
 }
 
-async function callEdgeFunction(functionName: string, body?: any, method: string = 'POST') {
-  const { data: { session } } = await supabase.auth.getSession();
+/* ---------------------------------------------------------
+   Utility: Call Edge Function
+--------------------------------------------------------- */
+async function callEdgeFunction(
+  functionName: string,
+  body?: any,
+  method: string = 'POST'
+) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const session = sessionData.session;
 
   if (!session) {
     throw new Error('Not authenticated');
@@ -42,7 +50,7 @@ async function callEdgeFunction(functionName: string, body?: any, method: string
   const url = `${SUPABASE_URL}/functions/v1/${functionName}`;
 
   const headers: HeadersInit = {
-    'Authorization': `Bearer ${session.access_token}`,
+    Authorization: `Bearer ${session.access_token}`,
     'Content-Type': 'application/json',
   };
 
@@ -65,6 +73,10 @@ async function callEdgeFunction(functionName: string, body?: any, method: string
   return response.json();
 }
 
+/* ---------------------------------------------------------
+   Main Edge Function Exports
+--------------------------------------------------------- */
+
 export async function trackUsage(params: TrackUsageParams) {
   return callEdgeFunction('track-usage', params);
 }
@@ -73,18 +85,27 @@ export async function getUserData(): Promise<UserData> {
   return callEdgeFunction('get-user-data', null, 'GET');
 }
 
-export async function createCheckoutSession(tierId: string, priceId: string) {
+export async function createCheckoutSession(
+  tierId: string,
+  priceId: string
+) {
   return callEdgeFunction('create-checkout-session', { tierId, priceId });
 }
 
-export async function signUp(email: string, password: string, fullName?: string) {
+/* ---------------------------------------------------------
+   Authentication
+--------------------------------------------------------- */
+
+export async function signUp(
+  email: string,
+  password: string,
+  fullName?: string
+) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: {
-        full_name: fullName,
-      },
+      data: { full_name: fullName },
     },
   });
 
@@ -107,27 +128,15 @@ export async function signOut() {
   if (error) throw error;
 }
 
+/* ---------------------------------------------------------
+   OAuth Providers
+--------------------------------------------------------- */
+
 export async function signInWithGoogle() {
- const { error } = await supabase.auth.signInWithOAuth({
-  provider: 'google',
-  options: {
-    redirectTo: `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/callback`
-  }
-});
-
-
-  if (error) throw error;
-  return data;
-}
-
-export async function signInWithFacebook() {
-  const { error } = await supabase.auth.signInWithOAuth({
-  provider: 'google',
-  options: {
-    redirectTo: `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/callback`
-  }
-});
-
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${SUPABASE_URL}/auth/v1/callback`,
     },
   });
 
@@ -135,24 +144,36 @@ export async function signInWithFacebook() {
   return data;
 }
 
-export async function getSubscriptionTiers() {
-  const { data, error } = await supabase
-    .from('subscription_tiers')
-    .select('*')
-    .eq('is_active', true)
-    .order('price', { ascending: true });
+export async function signInWithFacebook() {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'facebook',
+    options: {
+      redirectTo: `${SUPABASE_URL}/auth/v1/callback`,
+    },
+  });
 
   if (error) throw error;
   return data;
 }
 
+/* ---------------------------------------------------------
+   Usage & Images
+--------------------------------------------------------- */
+
 export async function getCurrentUsage() {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: userResponse } = await supabase.auth.getUser();
+  const user = userResponse.user;
 
   if (!user) throw new Error('Not authenticated');
 
   const now = new Date();
-  const month = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const month = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    1
+  )
+    .toISOString()
+    .split('T')[0];
 
   const { data, error } = await supabase
     .from('usage_tracking')
@@ -163,16 +184,19 @@ export async function getCurrentUsage() {
 
   if (error) throw error;
 
-  return data || {
-    thumbnails_generated: 0,
-    magic_edits_used: 0,
-    upscales_used: 0,
-    background_removals_used: 0,
-  };
+  return (
+    data || {
+      thumbnails_generated: 0,
+      magic_edits_used: 0,
+      upscales_used: 0,
+      background_removals_used: 0,
+    }
+  );
 }
 
 export async function getRecentImages(limit: number = 20) {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: userResponse } = await supabase.auth.getUser();
+  const user = userResponse.user;
 
   if (!user) throw new Error('Not authenticated');
 

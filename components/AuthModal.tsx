@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
-import { GoogleIcon, FacebookIcon } from './icons';
-import { signIn, signUp, signInWithGoogle, signInWithFacebook } from '../lib/api';
+import { supabase } from '../lib/supabaseClient';
+import { GoogleIcon } from './icons';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -16,6 +15,20 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const handleGoogleLogin = async () => {
+    setError(null);
+    try {
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/callback`,
+        },
+      });
+    } catch (err: any) {
+      setError(err.message || 'Google sign-in failed');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -23,9 +36,20 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
 
     try {
       if (isSignUp) {
-        await signUp(email, password, fullName);
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { fullName }
+          }
+        });
+        if (error) throw error;
       } else {
-        await signIn(email, password);
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
       }
       onClose();
     } catch (err: any) {
@@ -35,44 +59,32 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setError(null);
-    try {
-      await signInWithGoogle();
-    } catch (err: any) {
-      setError(err.message || 'Google sign-in failed');
-    }
-  };
-
-  const handleFacebookSignIn = async () => {
-    setError(null);
-    try {
-      await signInWithFacebook();
-    } catch (err: any) {
-      setError(err.message || 'Facebook sign-in failed');
-    }
-  };
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 transition-opacity duration-300" onClick={onClose}>
-      <div className="bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md m-4 transform transition-all duration-300 scale-95 hover:scale-100" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 transition-opacity"
+         onClick={onClose}
+    >
+      <div className="bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md m-4"
+           onClick={e => e.stopPropagation()}
+      >
         <div className="text-center">
           <h2 className="text-3xl font-bold text-white mb-2">Welcome to Hook.ai</h2>
-          <p className="text-gray-400 mb-6">{isSignUp ? 'Create your account to get started' : 'Sign in to unlock your creativity'}</p>
+          <p className="text-gray-400 mb-6">
+            {isSignUp ? 'Create your account' : 'Sign in to continue'}
+          </p>
         </div>
 
-        <div className="flex justify-center space-x-4 mb-6">
-          <button onClick={handleGoogleSignIn} type="button" className="p-3 bg-gray-700 rounded-full hover:bg-gray-600 transition-colors">
+        <div className="flex justify-center mb-6">
+          <button
+            onClick={handleGoogleLogin}
+            className="p-3 bg-gray-700 rounded-full hover:bg-gray-600 transition"
+          >
             <GoogleIcon />
-          </button>
-          <button onClick={handleFacebookSignIn} type="button" className="p-3 bg-gray-700 rounded-full hover:bg-gray-600 transition-colors">
-            <FacebookIcon />
           </button>
         </div>
 
         <div className="relative flex items-center my-6">
           <div className="flex-grow border-t border-gray-600"></div>
-          <span className="flex-shrink mx-4 text-gray-400 text-sm">OR</span>
+          <span className="mx-4 text-gray-400 text-sm">OR</span>
           <div className="flex-grow border-t border-gray-600"></div>
         </div>
 
@@ -85,80 +97,61 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         <form onSubmit={handleSubmit}>
           {isSignUp && (
             <div className="mb-4">
-              <label className="block text-gray-400 text-sm font-bold mb-2" htmlFor="fullName">
+              <label className="block text-gray-400 text-sm font-bold mb-2">
                 Full Name
               </label>
               <input
-                className="shadow-inner appearance-none border border-gray-700 bg-gray-900 rounded-lg w-full py-3 px-4 text-gray-300 leading-tight focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                id="fullName"
+                className="bg-gray-900 border border-gray-700 rounded-lg w-full py-3 px-4 text-gray-300 focus:ring-2 focus:ring-cyan-500"
                 type="text"
                 placeholder="John Doe"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                onChange={e => setFullName(e.target.value)}
               />
             </div>
           )}
+
           <div className="mb-4">
-            <label className="block text-gray-400 text-sm font-bold mb-2" htmlFor="email">
+            <label className="block text-gray-400 text-sm font-bold mb-2">
               Email
             </label>
             <input
-              className="shadow-inner appearance-none border border-gray-700 bg-gray-900 rounded-lg w-full py-3 px-4 text-gray-300 leading-tight focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              id="email"
+              className="bg-gray-900 border border-gray-700 rounded-lg w-full py-3 px-4 text-gray-300 focus:ring-2 focus:ring-cyan-500"
               type="email"
-              placeholder="you@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@example.com"
               required
             />
           </div>
+
           <div className="mb-6">
-            <label className="block text-gray-400 text-sm font-bold mb-2" htmlFor="password">
+            <label className="block text-gray-400 text-sm font-bold mb-2">
               Password
             </label>
             <input
-              className="shadow-inner appearance-none border border-gray-700 bg-gray-900 rounded-lg w-full py-3 px-4 text-gray-300 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              id="password"
+              className="bg-gray-900 border border-gray-700 rounded-lg w-full py-3 px-4 text-gray-300 focus:ring-2 focus:ring-cyan-500"
               type="password"
-              placeholder="******************"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={e => setPassword(e.target.value)}
               required
             />
           </div>
-          {!isSignUp && (
-            <div className="flex items-center justify-between mb-6">
-              <label className="flex items-center text-gray-400">
-                <input
-                  type="checkbox"
-                  className="form-checkbox h-4 w-4 text-cyan-500 bg-gray-700 border-gray-600 rounded focus:ring-cyan-500"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                />
-                <span className="ml-2 text-sm">Stay logged in</span>
-              </label>
-            </div>
-          )}
-          <div className="flex flex-col space-y-3">
-            <button
-              className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-              type="submit"
-              disabled={loading}
-            >
-              {loading ? 'Processing...' : isSignUp ? 'Sign Up' : 'Sign In'}
-            </button>
-            <button
-              className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors"
-              type="button"
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setError(null);
-              }}
-              disabled={loading}
-            >
-              {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
-            </button>
-          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg transition disabled:opacity-50"
+          >
+            {loading ? 'Processing...' : isSignUp ? 'Sign Up' : 'Sign In'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="w-full mt-4 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg"
+          >
+            {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
+          </button>
         </form>
       </div>
     </div>
