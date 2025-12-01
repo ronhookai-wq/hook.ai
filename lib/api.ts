@@ -136,7 +136,7 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`
+      redirectTo: `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/callback`
     }
   });
 
@@ -146,16 +146,19 @@ export async function signInWithGoogle() {
 
 
 
+
 export async function signInWithFacebook() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'facebook',
     options: {
-      redirectTo: `${SUPABASE_URL}/auth/v1/callback`,
-    },
+      redirectTo: `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/callback`
+    }
   });
 
   if (error) throw error;
   return data;
+}
+
 }
 
 /* ---------------------------------------------------------
