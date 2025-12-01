@@ -108,22 +108,26 @@ export async function signOut() {
 }
 
 export async function signInWithGoogle() {
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin,
-    },
-  });
+ const { error } = await supabase.auth.signInWithOAuth({
+  provider: 'google',
+  options: {
+    redirectTo: `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/callback`
+  }
+});
+
 
   if (error) throw error;
   return data;
 }
 
 export async function signInWithFacebook() {
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'facebook',
-    options: {
-      redirectTo: window.location.origin,
+  const { error } = await supabase.auth.signInWithOAuth({
+  provider: 'google',
+  options: {
+    redirectTo: `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/callback`
+  }
+});
+
     },
   });
 

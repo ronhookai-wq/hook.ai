@@ -54,11 +54,12 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
   const handleGoogleSignUp = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-        },
-      })
+  provider: 'google',
+  options: {
+    redirectTo: `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/callback`
+  }
+});
+
       if (error) {
         setError(error.message)
       }
@@ -70,11 +71,12 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
   const handleGithubSignUp = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-        },
-      })
+  provider: 'google',
+  options: {
+    redirectTo: `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/callback`
+  }
+});
+
       if (error) {
         setError(error.message)
       }
