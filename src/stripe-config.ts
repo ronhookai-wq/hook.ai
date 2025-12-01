@@ -5,6 +5,8 @@ export interface StripeProduct {
   description: string;
   price: number;
   currency: string;
+
+  
   mode: 'subscription' | 'payment';
 }
 

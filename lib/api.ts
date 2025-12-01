@@ -134,15 +134,17 @@ export async function signOut() {
 
 export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
+    provider: "google",
     options: {
-      redirectTo: `${SUPABASE_URL}/auth/v1/callback`,
-    },
+      redirectTo: `${window.location.origin}/auth/callback`
+    }
   });
 
   if (error) throw error;
   return data;
 }
+
+
 
 export async function signInWithFacebook() {
   const { data, error } = await supabase.auth.signInWithOAuth({
